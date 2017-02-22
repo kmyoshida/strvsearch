@@ -59,7 +59,7 @@ app.get('/searchws', function(req, res) {
 
 	var q = { "name": { $regex: req.query['keyword'], $options: 'i' } };		
 
-    mongodb.MongoClient.connect('mongodb://localhost/stravasearch', function(err, db) {
+    mongodb.MongoClient.connect('mongodb://appuser:aedlp3!mlab@ds157819.mlab.com:57819/strvsearch', function(err, db) {
     	if(err) {
     		console.log(err);
         	res.status(500).send(err);
