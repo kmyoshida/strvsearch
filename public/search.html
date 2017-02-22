@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>StravaSearch</title>
+
+		<link rel="stylesheet" href="/lib/leaflet.css" />
+		<script src="/lib/leaflet.js"></script>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="/lib/MarkerCluster.css" />
+		<link rel="stylesheet" href="/lib/MarkerCluster.Default.css" />
+		<script src="/lib/leaflet.markercluster-src.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<style>
+
+			body {
+				font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+				font-size:14px;
+				margin:0px;
+				height:100%;
+				background-color:#fc4c02;
+			}
+
+			/* ---------------- Search pane --------------------*/
+			#searchpane {
+			    background-color:#fc4c02;
+			    width:100%;
+			    padding:20px;
+			    box-sizing: border-box;
+			    
+			}
+			#searchbar {
+				text-align:center;
+			}
+			#keyword{
+				border: 0px;
+				padding: 0px 5px;
+				height: 20px;
+				width:250px;
+			}
+			#submit {
+				border: 0px;
+				padding: 0px 5px;
+				height:20px;			
+			}
+			.subfilter {
+				padding:2px;
+				box-sizing: border-box;
+			}
+
+			.label {
+				color: #fff;
+				font-size:12px;
+				width: 100px;
+				display: inline-block;
+				text-align:right;
+				padding-right:20px;
+			}
+
+			#filters a {
+				background-color:#c0c0c0;
+				font-size:12px;
+				padding: 2px 8px;
+				border: 0px;
+				cursor:pointer;
+				box-sizing: border-box;
+			}
+			#filters a.on {
+				background-color:yellow;
+			}
+
+			/* ---------------- Result pane --------------------*/
+			#respane {
+			    box-sizing: border-box;
+			    background-color:#f0f0f0;
+			    float:left;
+			    width:800px;
+			    height:600px;
+			}
+			#blurb {
+				height:20px;
+				line-height:20px;
+				text-align: center;
+			}
+			#reslist {
+				height:570px;
+			    font-size:12px;
+			}
+
+			#restable a {
+				font-weight: bold;
+				color : #333;
+				text-decoration: none;
+			}
+			#restable a:hover {
+				text-decoration: underline;
+			}
+			table {
+				-webkit-border-vertical-spacing: 0px;
+				-webkit-border-horizontal-spacing: 0px;
+
+			}
+			thead, tbody {
+				display: block;
+				box-sizing: border-box;
+				padding: 0px;
+			}
+			thead th {
+				box-sizing: border-box;
+				height:50px;
+				border-bottom: 1px solid #333;
+				box-sizing: border-box;
+			}
+			tbody {
+				height:530px;
+				width: 900px;
+				overflow-y: auto;    /* Trigger vertical scroll    */
+    			overflow-x: hidden;  /* Hide the horizontal scroll */			    
+			}
+			td {
+				box-sizing: border-box;
+			}
+			#th_activity { width: 40px }
+			#th_date { width: 80px }
+			#th_distance { width: 60px }
+			#th_duration { width: 60px }
+			#th_type { width: 80px }
+			#th_name { width:400px; }
+			
+			.td_activity { width: 40px; text-align:center; }
+			.td_date { width: 80px; text-align:left; padding-left:5px;}
+			.td_distance { width: 60px; text-align:right; }
+			.td_duration { width: 60px; text-align:right; }
+			.td_type { width: 80px }
+			.td_name {  }
+
+			div.wt {
+				font-size:12px;
+				text-align:center;
+				width:70px;			
+			}
+			div.wt_1, div.wt_11 {
+				background-color:rgb(242, 109, 109);
+			}
+			div.wt_2 {
+				background-color:#9dbf99;
+			}
+			div.wt_3, div.wt_12 {
+				background-color:#FFD089
+			}
+			/* ---------------- Map --------------------*/
+			#map {
+			    box-sizing: border-box;
+				margin-left: 800px;
+				border: 0px;
+				height:600px;
+			}
+
+
+		</style>
+
+		<script>			
+			var page_query = {}; // for persistency
+			var page_filter = {};
+			var page_activities;
+
+			// set default value
+			page_filter = {
+				"year": [2013, 2014, 2015, 2016, 2017],
+				"type": ["Run", "Swim", "Ride"],
+			}
+
+
+			var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+			var types = { "Run": "&#x1F3C3;", "Ride": "&#x1f6b2;", "Swim":"&#x1f3ca;", "AlpineSki":"&#x2744;", "NordicSki":"&#x2744;"};
+			var workout_types = [ "-","Race", "Long Run", "Workout", "","","","","","","-","Race","Workout"];
+
+			var map;
+			var markers = undefined;
+
+			var year = new Set();
+			var type = new Set();
+			var workout_type = new Set();
+
+			function secondsToTime(secs) 
+			{
+			    var hours = Math.floor(secs / (60 * 60));
+			    var divisor_for_minutes = secs % (60 * 60);
+			    var minutes = Math.floor(divisor_for_minutes / 60);
+			    var divisor_for_seconds = divisor_for_minutes % 60;
+			    var seconds = Math.ceil(divisor_for_seconds);
+			    var obj = { "h": hours, "m": minutes, "s": seconds };
+			    return obj;
+			}
+
+			function getParameterByName(name) 
+			{
+				name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+				var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+				results = regex.exec(location.search);
+				return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+			}
+
+			function preProcessActivities(ac) 
+			{
+				for (var i=0; i<ac.length; i++) {
+					ac[i].start_date = new Date(ac[i].start_date);
+					ac[i].year = ac[i].start_date.getFullYear();
+					ac[i].month = ac[i].start_date.getMonth();
+					ac[i].day = ac[i].start_date.getDate();
+					ac[i].dow = ac[i].start_date.getDay();
+					year.add(ac[i].year);
+					type.add(ac[i].type);
+					workout_type.add(ac[i].workout_type);
+				}
+				return ac;
+			}
+
+			function toggleFilter(filter, key, value) 
+			{
+				console.log("toggleFilter key:" + key + " val:" + value);			
+				if (key in filter)  {
+					var v = filter[key];
+					if (Array.isArray(v)) {
+						if (v.includes(value)) {
+							// remove value
+ 							for (var i in v) {
+        						if(v[i]==value) {
+            						v.splice(i,1);
+            						break;
+        						}
+    						}
+    						if (v.length == 1)
+    							filter[key] = v[0];
+						} else {
+							// add value
+							v.push(value);
+						}
+					} else {
+						if (v == value) {
+							delete filter[key];
+						} else {
+							filter[key] = [v, value];
+						}
+					}
+				} else {
+					filter[key] = value;
+				}
+				return filter;
+			}
+
+			function filterActivityList(list, filter) 
+			{
+				console.log("[filterActivityList] filtering " + list.length + " activities with filter:");
+				console.log(JSON.stringify(filter));
+
+				var filtered = [];
+				for (var i=0; i<list.length; i++) {
+					var match = true;
+					for (key in filter) {
+						if (Array.isArray(filter[key])) {
+							if (!(filter[key].includes(list[i][key]))) {
+								match = false;
+								break;
+							}
+						} else {
+							if (list[i][key] != filter[key]) {
+								match = false;
+								break;
+							}
+						}
+					}
+					if (match)
+						filtered.push(list[i]);
+				}
+				console.log("[filterActivityList] " + filtered.length + " items");
+				console.log("[filterActivityList] END");
+				return filtered;
+			}
+
+			function updateFiltersDisplay(filter) 
+			{
+				for (key in filter) {
+					var val = filter[key];
+					var id = "";
+					if (Array.isArray(val)) {
+						for (var i=0; i<val.length; i++) {
+							id  = "#f-" + key + "-" + val[i];
+							if ($(id).length)
+								$(id).addClass("on");
+						}
+					} else {
+						id = "#f-" + key + "-" + val;
+						if ($(id).length)
+							$(id).setClass("on");
+					}
+				}
+			}
+
+			function updateResultsDisplay(list) 
+			{
+				$('#blurb').html("" + list.length + " activitie(s)");
+				var reshtml = "";
+
+				for (var i=0; i<list.length;i++) {
+					var start_date = new Date(list[i].start_date);
+					var elapsed = secondsToTime(list[i].elapsed_time);
+					var wt = list[i].workout_type;
+
+					if (wt == null) wt = 0;
+
+					reshtml += "<tr>";
+					reshtml += "<td class='td_activity'>" + types[list[i].type] + "</td>";
+					reshtml += "<td class='td_date'>" + start_date.getFullYear() + " " + months[start_date.getMonth()] + " " + start_date.getDate() + "</td>";
+					reshtml += "<td class='td_distance'>" + Math.floor(list[i].distance/1000) + " km" + "</td>";
+					reshtml += "<td class='td_duration'>" + elapsed.h + ":" + elapsed.m + ":" + elapsed.s + "" + "</td>";
+					reshtml += "<td class='td_type'><div class='wt wt_" + wt + "'>" + workout_types[wt] + "</div></td>";					
+					reshtml += "<td class='td_name'><a target='_blank' href='https://www.strava.com/activities/" + list[i].id + "'>" + list[i].name + "</a></td>";
+					reshtml += "</tr>";
+
+				}
+				$('#restable').html(reshtml);
+			}
+
+			function updateMapDisplay(list) 
+			{
+				var minlat = undefined, maxlat = undefined; minlon = undefined, maxlon = undefined;
+
+				if (markers != undefined) {
+					markers.remove();
+				}
+				markers= L.markerClusterGroup();
+
+				for (var i = 0; i < list.length; i++) {
+					var a = list[i];
+					if (a.start_latlng) {
+						var name = a.name;
+						var marker = L.marker(new L.LatLng(a.start_latlng[0], a.start_latlng[1]), { title: name });
+						marker.bindPopup(name);
+						markers.addLayer(marker);
+
+						if (minlat == undefined) {
+							minlat = a.start_latlng[0];
+							minlon = a.start_latlng[1];
+							maxlat = a.start_latlng[0];
+							maxlon = a.start_latlng[1];
+						} else {
+							minlat = Math.min(minlat, a.start_latlng[0]);
+							minlon = Math.min(minlon, a.start_latlng[1]);
+							maxlat = Math.max(maxlat, a.start_latlng[0]);
+							maxlon = Math.max(maxlon, a.start_latlng[1]);
+						}
+					}
+				}
+
+				map.addLayer(markers);
+
+				if (minlat != undefined) 
+					map.fitBounds([[minlat, minlon],[maxlat,maxlon]], {padding:[5,5]});
+
+			}
+			
+			function updatePage(filter, query) {
+				updateFiltersDisplay(filter);
+				query['keyword'] = $("#keyword").val();
+				$.getJSON("/searchws", query, function(results) {
+					page_activities = preProcessActivities(results);
+					var ac = filterActivityList(page_activities, filter);
+					updateResultsDisplay(ac);
+					updateMapDisplay(ac);
+				});
+			}
+
+			function initMap() 
+			{
+				var tiles = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+						maxZoom: 18,
+						attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors, Points &copy 2012 LINZ'
+					});
+				var latlng = L.latLng(48.82, 2.34);
+				var m = L.map('map', {center: latlng, zoom: 10, layers: [tiles]});
+				return m;
+			}
+
+			$(document).ready(function() {
+
+				$("#mappane").width($(window).width()-$("#respane").width());
+
+
+				map = initMap();
+
+				updatePage(page_filter, page_query);
+
+				$('#submit').click(function() {
+					updatePage(page_filter, page_query);
+				});
+
+				$('#keyword').change(function() {
+					updatePage(page_filter, page_query);
+				});
+
+				$('#filters a').click(function() {
+
+					$(this).toggleClass("on");
+					var a = $(this).attr("id").split("-"), key = a[1], val = a[2];
+					if (key == "year" || key == "workout_type") 
+						val = Number(val);
+
+					toggleFilter(page_filter, key, val);
+
+					var ac = filterActivityList(page_activities, page_filter);
+					updateResultsDisplay(ac);
+					updateMapDisplay(ac);					
+				});
+
+			});
+
+
+			$(window).resize(function() { 
+				$("#map").width( $(window).width() - $("#respane").width() );
+				//map.invalidateSize();
+			});
+
+
+		</script>
+
+	</head>
+
+	<body>
+
+		<div id="searchpane">
+
+			<div id="searchbar">
+					<label class="label">Keywords</label>
+					<input id='keyword' type="text" name='keyword' />
+					<input id='submit' type='submit' value='Search'>
+			</div>
+
+			<div id="filters">
+				<div id="f-year" class="subfilter"><div class="label">Year</div>
+					<a id="f-year-2012">2012</a>
+					<a id="f-year-2013">2013</a>
+					<a id="f-year-2014">2014</a>
+					<a id="f-year-2015">2015</a>
+					<a id="f-year-2016">2016</a>
+					<a id="f-year-2017">2017</a>
+				</div>
+				<div id="f-type" class="subfilter"><div class="label">Activity</div>
+					<a id="f-type-Run">Run</a>
+					<a id="f-type-Swim">Swim</a>
+					<a id="f-type-Ride">Ride</a>
+					<a id="f-type-AlpineSki">Alpine Ski</a>
+					<a id="f-type-NordicSki">Nordic Ski</a>
+					<a id="f-type-Hike">Hike</a>
+					<a id="f-type-StandUpPaddling">Stand Up Paddling</a>
+					<a id="f-type-BackcountrySki">Backcountry Ski</a>
+				</div>
+				<div id="f-workout" class="subfilter"><div class="label">Type</div>
+					<a id="f-workout_type-1">&#x1F3C3; Race</a>
+					<a id="f-workout_type-2">&#x1F3C3; Long Run</a>
+					<a id="f-workout_type-3">&#x1F3C3; Workout</a>
+					<a id="f-workout_type-11">&#x1f6b2; Race</a>
+					<a id="f-workout_type-12">&#x1f6b2; Workout</a>
+				</div>
+			</div>
+		</div>
+
+		<div id="respane">
+			<div id="blurb"></div>
+			<div id="reslist">
+				<table>
+					<thead>
+						<tr>
+							<th id="th_activity"></th>
+							<th id="th_date">date</th>
+							<th id="th_distance">distance</th>
+							<th id="th_duration">duration</th>
+							<th id="th_type">type</th>
+							<th id="th_name">activity</th>
+						</tr>
+					</thead>
+					<tbody id="restable">
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div id="map"></div>
+
+
+	</body>
+</html>
