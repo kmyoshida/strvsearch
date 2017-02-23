@@ -6,7 +6,7 @@ var http = require('http');
 var url = require('url');
 var querystring = require('querystring');
 var fs = require("fs");
-var qpm = require('query-params-mongo');
+//var qpm = require('query-params-mongo');
 var mongodb = require('mongodb');
 
 var all_activities = [];
