@@ -57,9 +57,20 @@ app.get('/searchws', function(req, res) {
 	//console.log("******* search0: req.query=");
 	//console.log(req.query);
 
-	var q = { "name": { $regex: req.query['keyword'], $options: 'i' } };		
+	var q = { "name": { $regex: req.query['keyword'], $options: 'i' } };
+	var mongodb_params = {
+		"user" : "appuser",
+		"passwd" : "strv2016",
+		"server" : "ds157819.mlab.com",
+		"port" : "57819",
+		"db" : "strvsearch"
+	}
+	var mongodb_connect = "mongodb://" + mongodb_params.user +
+		":" + mongodb_params.passwd + "@" + mongodb_params.server +
+		":" + mongodb_params.port + "/" + mongodb_params.db;
 
-    mongodb.MongoClient.connect('mongodb://appuser:aedlp3!mlab@ds157819.mlab.com:57819/strvsearch', function(err, db) {
+
+    mongodb.MongoClient.connect(mongodb_connect, function(err, db) {
     	if(err) {
     		console.log(err);
         	res.status(500).send(err);
