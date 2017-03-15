@@ -1,0 +1,256 @@
+body {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size:14px;
+	margin:0px;
+	padding:0px;
+	height:100%;
+	background-color:#fc4c02;
+}
+
+			
+ul {
+	padding:0;
+	display:inline-block;
+	list-style:none;
+}
+
+div, li {
+	//border: thin solid red;
+	margin: 0px;
+	padding: 0px;
+}
+
+.container {
+	box-sizing: border-box;
+	min-width: 1150px;
+	width:auto;
+}
+
+
+#page-header {
+	background-color:#fc4c02;
+	box-sizing: border-box;
+	//position:relative;
+	position:fixed;
+	top:0;
+	z-index:98;
+	//margin: 0px auto 0px;
+	width:100%;
+}
+
+#nav-bar {
+	box-sizing: border-box;
+	//max-width: 1150px;
+	margin: 0px auto 0;
+	height: 30px;
+}
+
+h1.logo {
+	box-sizing:border-box;		
+	display:block;
+	position:relative;
+	float:left;
+	height:30px;
+	width:200px;
+	background-color:#fc4c02;
+	margin: 0;
+	padding-top:5px;
+	padding-bottom:5px;
+	padding-left:10px;
+}
+
+.global-nav {
+	display:block;
+	position:relative;
+	float:left;
+	margin: 0;
+	padding:0;
+
+}
+
+.global-nav>li>a {
+	box-sizing:border-box;				
+	display:block;
+	text-decoration: none;
+	color:#202020;
+	height:30px;
+	padding-top:5px;
+	padding-bottom:5px;
+	line-height: 1em;
+}
+
+.user-nav>li>a {
+	box-sizing:border-box;				
+	display:block;
+	text-decoration: none;
+	color:#202020;
+	height:30px;
+	padding-top:5px;
+	padding-bottom:5px;
+	line-height: 1em;
+}
+
+.user-nav {
+	display:block;
+	position:relative;
+	float:right;
+	background-color:#808080;
+	width:150px;
+	height:30px;
+	margin: 0;
+}
+
+.drop-down-menu {
+	height:30px;
+	display:inline-block;
+	position:relative;
+	float:left;
+	padding-left:14px;
+	padding-right:14px;
+	background-color:#E0E0E0;
+}
+
+#page-header:after {
+	content: "";
+	display: table;
+	clear: both;
+	margin: 0;
+}
+
+
+/* ---------------- Search pane --------------------*/
+#searchpane {
+    //background-color:#fc4c02;
+    background-color: #fff;
+    width:100%;
+    padding:20px;
+    box-sizing: border-box;
+    margin-top:30px;
+}
+
+#searchbar {
+	text-align:center;
+}
+#keyword {
+	border: 1px solid #ccc;
+	padding: 0px 5px;
+	height: 20px;
+	width:250px;
+}
+#submit {
+	border: 0px;
+	padding: 0px 5px;
+	height:20px;			
+}
+.subfilter {
+	padding:2px;
+	box-sizing: border-box;
+}
+
+.label {
+	color: #000;
+	font-size:12px;
+	width: 100px;
+	display: inline-block;
+	text-align:right;
+	padding-right:20px;
+}
+
+#filters a {
+	background-color:#f0f0f0;
+	font-size:12px;
+	padding: 2px 8px;
+	border: 0px;
+	cursor:pointer;
+	box-sizing: border-box;
+}
+#filters a.on {
+	background-color:yellow;
+}
+
+/* ---------------- Result pane --------------------*/
+#respane {
+    box-sizing: border-box;
+    background-color:#f0f0f0;
+    float:left;
+    width:800px;
+    height:600px;
+}
+#blurb {
+	height:20px;
+	line-height:20px;
+	text-align: center;
+}
+#reslist {
+	height:570px;
+    font-size:12px;
+}
+
+#restable a {
+	font-weight: bold;
+	color : #333;
+	text-decoration: none;
+}
+#restable a:hover {
+	text-decoration: underline;
+}
+table {
+	-webkit-border-vertical-spacing: 0px;
+	-webkit-border-horizontal-spacing: 0px;
+
+}
+thead, tbody {
+	display: block;
+	box-sizing: border-box;
+	padding: 0px;
+}
+thead th {
+	box-sizing: border-box;
+	height:50px;
+	border-bottom: 1px solid #333;
+	box-sizing: border-box;
+}
+tbody {
+	height:530px;
+	width: 900px;
+	overflow-y: auto;    /* Trigger vertical scroll    */
+	overflow-x: hidden;  /* Hide the horizontal scroll */			    
+}
+td {
+	box-sizing: border-box;
+}
+#th_activity { width: 40px }
+#th_date { width: 80px }
+#th_distance { width: 60px }
+#th_duration { width: 60px }
+#th_type { width: 80px }
+#th_name { width:400px; }
+
+.td_activity { width: 40px; text-align:center; }
+.td_date { width: 80px; text-align:left; padding-left:5px;}
+.td_distance { width: 60px; text-align:right; }
+.td_duration { width: 60px; text-align:right; }
+.td_type { width: 80px }
+.td_name {  }
+
+div.wt {
+	font-size:12px;
+	text-align:center;
+	width:70px;			
+}
+div.wt_1, div.wt_11 {
+	background-color:rgb(242, 109, 109);
+}
+div.wt_2 {
+	background-color:#9dbf99;
+}
+div.wt_3, div.wt_12 {
+	background-color:#FFD089
+}
+/* ---------------- Map --------------------*/
+#map {
+    box-sizing: border-box;
+	margin-left: 800px;
+	border: 0px;
+	height:600px;
+}
