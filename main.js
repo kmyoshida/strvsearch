@@ -1,24 +1,40 @@
 var strava = require('strava-v3');
 var express = require('express');
 var session = require('express-session');
+const MongoStore = require('connect-mongo')(session);
 var path = require('path');
-var app = express();
 var http = require('http');
 var url = require('url');
 var querystring = require('querystring');
 var fs = require("fs");
-//var qpm = require('query-params-mongo');
 var mongodb = require('mongodb');
+//var qpm = require('query-params-mongo');
 
+var mongodb_params = {
+	"user" : "writer",
+	"passwd" : "strv2016",
+	"server" : "ds157819.mlab.com",
+	"port" : "57819",
+	"db" : "strvsearch"
+}
+var mongodb_connect = "mongodb://" + mongodb_params.user +
+	":" + mongodb_params.passwd + "@" + mongodb_params.server +
+	":" + mongodb_params.port + "/" + mongodb_params.db;
+
+
+var app = express();
+
+//app.use(express.favicon());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session(
 {
     secret: "toto",
-    //name: "cookie_name",
-    //store: sessionStore, // connect-mongo session store
+    name: "cookie_name",
+  	store: new MongoStore({ url: mongodb_connect }),
+  	cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 },
     //proxy: true,
-    resave: true,
-    saveUninitialized: true
+    //resave: true,
+    saveUninitialized: false
 }));
 
 //=================================================================================
@@ -56,6 +72,9 @@ function _fetchpage(token, page_num, d, cb_end) {
 }
 
 app.get('/activities', function(req, res) {
+
+	console.log("==> /activities");
+
 	var sess = req.session;
 	var token = sess.access_token;
 	
@@ -77,18 +96,7 @@ app.get('/activities', function(req, res) {
 
 app.get('/clear', function(req, res) {
 
-
-	var mongodb_params = {
-		"user" : "writer",
-		"passwd" : "strv2016",
-		"server" : "ds157819.mlab.com",
-		"port" : "57819",
-		"db" : "strvsearch"
-	}
-	var mongodb_connect = "mongodb://" + mongodb_params.user +
-		":" + mongodb_params.passwd + "@" + mongodb_params.server +
-		":" + mongodb_params.port + "/" + mongodb_params.db;
-
+	console.log("==> /clear");
 
 	var athlete_id = 4655228;
 	console.log("athlete_id: " + athlete_id);
@@ -106,12 +114,10 @@ app.get('/clear', function(req, res) {
 });
 
 
-
-
-
-
-
 app.get('/refresh', function(req, res) {
+
+	console.log("==> /refresh");
+
 	var sess = req.session;
 	var token = sess.access_token;
 
@@ -179,6 +185,8 @@ app.get('/searchws', function(req, res) {
 	//console.log("******* search0: req.query=");
 	//console.log(req.query);
 
+	console.log("==> /searchws");
+
 	var q = { "name": { $regex: req.query['keyword'], $options: 'i' } };
 	var mongodb_params = {
 		"user" : "appuser",
@@ -218,10 +226,15 @@ app.get('/searchws', function(req, res) {
 //=================================================================================
 
 app.get('/', function(req, res) {
+
+	console.log("==> /");
+
 	res.redirect('/search');
 });
 
 app.get('/search', function(req, res) {
+
+	console.log("==> /search");
 
 	var sess = req.session;
 	var token = sess.access_token;
@@ -241,17 +254,46 @@ app.get('/search', function(req, res) {
 	}
 });
 
+//=================================================================================
+// TEST PAGE
+//=================================================================================
+
+app.get('/test', function(req, res) {
+
+	console.log("==> /test");
+
+	var sess = req.session;
+	var token = sess.access_token;
+
+	console.log("SESSION: " + token);
+
+	if (!token || token == undefined) {
+		res.redirect('/login');
+	}
+	else {
+		res.render('test.ejs', { 'token' : token});
+	}
+});
+
+
+
 
 //=================================================================================
 // LOGIN TO STRAVA
 //=================================================================================
 
 app.get('/login', function(req, res) {
+
+	console.log("==> /login");
+	
+
 	res.sendFile(path.join(__dirname + '/public/login.html'));
 
 });
 
 app.get('/exchange', function(req, res) {
+
+	console.log("==> /exchange");
 
 	var sess = req.session;
 
@@ -261,6 +303,7 @@ app.get('/exchange', function(req, res) {
 			res.status(500).send(err);
 		} else {
 			sess.code = req.query['code'];
+			console.log("got token: " + results.access_token);
 			sess.access_token = results.access_token;
 			res.redirect('/search');
 	  	}
