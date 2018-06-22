@@ -16,14 +16,21 @@
 		<script src="/lib/jquery.min.js"></script>
 		
 		
-		<script>			
+		<script>
+
+			Number.prototype.pad = function(size) {
+      			var s = String(this);
+      			while (s.length < (size || 2)) {s = "0" + s;}
+      			return s;
+    		}
+
 			var page_query = {}; // for persistency
 			var page_filter = {};
 			var page_activities;
 
 			// set default value
 			page_filter = {
-				"year": [2013, 2014, 2015, 2016, 2017],
+				"year": [2013, 2014, 2015, 2016, 2017, 2018],
 				"type": ["Run", "Swim", "Ride"],
 			}
 
@@ -172,8 +179,10 @@
 
 			function updateResultsDisplay(list) 
 			{
-				$('#blurb').html("" + list.length + " activitie(s)");
+				
 				var reshtml = "";
+				var total_distance = 0;
+				var total_time = 0;
 
 				list = sortActivityList(list, true);
 
@@ -184,17 +193,21 @@
 
 					if (wt == null) wt = 0;
 
+					total_time += list[i].elapsed_time;
+					total_distance += list[i].distance/1000;
+
 					reshtml += "<tr>";
 					reshtml += "<td class='td_activity'>" + types[list[i].type] + "</td>";
 					reshtml += "<td class='td_date'>" + start_date.getFullYear() + " " + months[start_date.getMonth()] + " " + start_date.getDate() + "</td>";
 					reshtml += "<td class='td_distance'>" + Math.floor(list[i].distance/1000) + " km" + "</td>";
-					reshtml += "<td class='td_duration'>" + elapsed.h + ":" + elapsed.m + ":" + elapsed.s + "" + "</td>";
+					reshtml += "<td class='td_duration'>" + elapsed.h + ":" + elapsed.m.pad(2) + ":" + elapsed.s.pad(2) + "" + "</td>";
 					reshtml += "<td class='td_type'><div class='wt wt_" + wt + "'>" + workout_types[wt] + "</div></td>";					
 					reshtml += "<td class='td_name'><a target='_blank' href='https://www.strava.com/activities/" + list[i].id + "'>" + list[i].name + "</a></td>";
 					reshtml += "</tr>";
 
 				}
-				$('#restable').html(reshtml);
+				$('#blurb').html("" + list.length + " activitie(s) - " + secondsToTime(total_time).h + " hours - " +  Math.floor(total_distance) + " km");
+				$('#res_tbody').html(reshtml);
 			}
 
 			function updateMapDisplay(list) 
@@ -236,6 +249,9 @@
 			}
 			
 			function updatePage(filter, query) {
+
+				console.log("update_page " + query);
+
 				updateFiltersDisplay(filter);
 				query['keyword'] = $("#keyword").val();
 				$.getJSON("/searchws", query, function(results) {
@@ -259,14 +275,34 @@
 				return m;
 			}
 
+			function layoutPage() {
+				var h_offset = $("#page-header").outerHeight() + $("#searchpane").outerHeight()
+
+				console.log("window: " + $(window).width() + "x" + $(window).height());
+				//console.log("h_offset: " + h_offset);
+
+				$("#respane").outerHeight( $(window).height() - h_offset);
+				$("#res_tbody").height( $("#respane").height() - $("#blurb").height() - $("#res_thead").height());
+
+
+
+
+				$("#map").height( $("#respane").height());
+				$("#map").width( $(window).width() - $("#respane").outerWidth());
+
+				console.log("map: " + $("#map").width());
+				console.log("respane: " + $("#respane").width());
+				
+				map.invalidateSize();
+
+			}
+
 			$(document).ready(function() {
-
-				$("#mappane").width($(window).width()-$("#respane").width());
-
 
 				map = initMap();
 
 				updatePage(page_filter, page_query);
+				layoutPage();
 
 				$('#submit').click(function() {
 					updatePage(page_filter, page_query);
@@ -292,10 +328,8 @@
 
 			});
 
-
-			$(window).resize(function() { 
-				$("#map").width( $(window).width() - $("#respane").width() );
-				//map.invalidateSize();
+			$(window).resize(function() {
+				layoutPage();
 			});
 
 
@@ -305,51 +339,75 @@
 
 	<body>
 	<div class="container">
-		<% include ./partials/header.ejs %>
+
+		<header id="page-header">
+			<nav id="nav-bar">
+				<div id="logo">STRVSEARCH</div>
+				<ul class="global-nav">
+					<li class="drop-down-menu"><a href="/refresh" class="selection">Refresh</a></li>
+				</ul>
+				<ul class="user-nav">
+					<li class="drop-down-menu"><a href="https://www.strava.com/athletes/<%=athlete.id%>"><%= athlete.firstname %></a></li>
+					<li class="drop-down-menu"><a href="/logout">Log Out</a></li>
+				</ul>
+			</nav>
+		</header>
 
 		<div id="searchpane">
 
-
 			<div id="searchbar">
-					<label class="label">Keywords</label>
+					<label id="keyw_label">Keywords</label>
 					<input id='keyword' type="text" name='keyword' />
 					<input id='submit' type='submit' value='Search'>
 			</div>
 
 			<div id="filters">
-				<div id="f-year" class="subfilter"><div class="label">Year</div>
-					<a id="f-year-2012">2012</a>
-					<a id="f-year-2013">2013</a>
-					<a id="f-year-2014">2014</a>
-					<a id="f-year-2015">2015</a>
-					<a id="f-year-2016">2016</a>
-					<a id="f-year-2017">2017</a>
+				<div id="f-year" class="subfilter">
+					<div class="label">Year</div>
+					<div class="tags">
+						<a id="f-year-2012">2012</a>
+						<a id="f-year-2013">2013</a>
+						<a id="f-year-2014">2014</a>
+						<a id="f-year-2015">2015</a>
+						<a id="f-year-2016">2016</a>
+						<a id="f-year-2017">2017</a>
+						<a id="f-year-2018">2018</a>
+					</div>
 				</div>
-				<div id="f-type" class="subfilter"><div class="label">Activity</div>
-					<a id="f-type-Run">Run</a>
-					<a id="f-type-Swim">Swim</a>
-					<a id="f-type-Ride">Ride</a>
-					<a id="f-type-AlpineSki">Alpine Ski</a>
-					<a id="f-type-NordicSki">Nordic Ski</a>
-					<a id="f-type-Hike">Hike</a>
-					<a id="f-type-StandUpPaddling">Stand Up Paddling</a>
-					<a id="f-type-BackcountrySki">Backcountry Ski</a>
+				<div id="f-type" class="subfilter">
+					<div class="label">Activity</div>
+					<div class="tags">
+						<a id="f-type-Run">Run</a>
+						<a id="f-type-Swim">Swim</a>
+						<a id="f-type-Ride">Ride</a>
+						<a id="f-type-AlpineSki">Alpine&nbsp;Ski</a>
+						<a id="f-type-NordicSki">Nordic&nbsp;Ski</a>
+						<a id="f-type-Hike">Hike</a>
+						<a id="f-type-StandUpPaddling">Stand&nbsp;Up&nbsp;Paddling</a>
+						<a id="f-type-BackcountrySki">Backcountry&nbsp;Ski</a>
+					</div>
 				</div>
-				<div id="f-workout" class="subfilter"><div class="label">Type</div>
-					<a id="f-workout_type-1">&#x1F3C3; Race</a>
-					<a id="f-workout_type-2">&#x1F3C3; Long Run</a>
-					<a id="f-workout_type-3">&#x1F3C3; Workout</a>
-					<a id="f-workout_type-11">&#x1f6b2; Race</a>
-					<a id="f-workout_type-12">&#x1f6b2; Workout</a>
+				<div id="f-workout" class="subfilter">
+					<div class="label">Type</div>
+					<div class="tags">
+						<a id="f-workout_type-1">&#x1F3C3;&nbsp;Race</a>
+						<a id="f-workout_type-2">&#x1F3C3;&nbsp;Long&nbsp;Run</a>
+						<a id="f-workout_type-3">&#x1F3C3;&nbsp;Workout</a>
+						<a id="f-workout_type-11">&#x1f6b2;&nbsp;Race</a>
+						<a id="f-workout_type-12">&#x1f6b2;&nbsp;Workout</a>
+					</div>
 				</div>
 			</div>
+
+
+
 		</div>
 
 		<div id="respane">
 			<div id="blurb"></div>
 			<div id="reslist">
 				<table>
-					<thead>
+					<thead id="res_thead" class="hide_mobile">
 						<tr>
 							<th id="th_activity"></th>
 							<th id="th_date">date</th>
@@ -359,12 +417,11 @@
 							<th id="th_name">activity</th>
 						</tr>
 					</thead>
-					<tbody id="restable">
+					<tbody id="res_tbody">
 					</tbody>
 				</table>
 			</div>
-		</div>
-		<div id="map"></div>
+		</div><div id="map" class="hide_mobile"></div>
 
 </div>
 	</body>
